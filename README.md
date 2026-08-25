@@ -107,7 +107,17 @@ Hui-touch/
 
 ### APK через GitHub Actions (без локального Android Studio)
 
-В репозитории есть workflow `.github/workflows/build-apk.yml`:
+Workflow лежит в `ci/build-apk.workflow.yml`. Активировать (одна команда,
+нужны права владельца репозитория — файлы в `.github/workflows/` нельзя
+пушить сервисными токенами без special permission `workflows`):
+
+```bash
+mkdir -p .github/workflows
+git mv ci/build-apk.workflow.yml .github/workflows/build-apk.yml
+git push
+```
+
+Дальше:
 1. Вкладка **Actions** → **Build APK** → **Run workflow**.
 2. В `release_tag` введите тег, например `v1.0.0` (или оставьте пустым).
 3. Через ~5–10 минут: APK в **Releases** (если задан тег) и в артефактах запуска.
