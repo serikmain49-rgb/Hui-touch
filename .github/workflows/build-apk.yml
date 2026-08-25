@@ -1,10 +1,11 @@
 name: Build APK
 
-# Запуск: Actions → "Build APK" → "Run workflow".
-# В поле release_tag укажите тег (напр. v1.0.0) — после сборки (~5–10 мин)
-# APK автоматически создаст/обновит GitHub Release.
-# Пустой release_tag — APK будет только в артефактах самого запуска.
 on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       release_tag:
@@ -30,11 +31,51 @@ jobs:
           java-version: "17"
 
       - name: Set up Gradle 8.11.1
-        run: |
-          wget -qO /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.11.1-bin.zip
-          unzip -q /tmp/gradle.zip -d /opt/gradle
-          echo "/opt/gradle/gradle-8.11.1/bin" >> "$GITHUB_PATH"
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
 
+      - name: Install Android SDK packages (platform 35, build-tools, NDK r27, CMake)
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973" "cmake;3.22.1"
+
+      - name: Build debug APK
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Prepare artifact
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk "dist/HuiTouch-1.0.0-debug.apk"
+
+      - name: Upload to Actions artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: huitouch-apk
+          path: dist/*.apk
+          retention-days: 30
+
+      - name: Determine release tag
+        id: vars
+        run: |
+          TAG="${{ github.event.inputs.release_tag }}"
+          if [ -z "$TAG" ] && [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "release_tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        if: steps.vars.outputs.release_tag != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.release_tag }}
+          name: HUI-TOUCH ${{ steps.vars.outputs.release_tag }}
+          body: |
+            HUI-TOUCH — универсальный гироскоп для игр (NDK + Shizuku).
+
+            **Файл:** `HuiTouch-1.0.0-debug.apk` — debug-сборка.
+          files: dist/*.apk
+          draft: false
+          prerelease: false
       - name: Install Android SDK packages (platform 35, build-tools, NDK r27)
         run: |
           yes | sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973"
