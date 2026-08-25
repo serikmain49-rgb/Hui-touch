@@ -103,6 +103,18 @@ Hui-touch/
      `gradle wrapper --gradle-version 8.11.1` один раз, либо в Settings → Build Tools →
      Gradle выберите «Use Gradle from: specific file path» на вашу установку Gradle 8.11+.
 3. `Run 'app'` на устройство (или эмулятор x86_64 с виртуализацией датчиков).
+   NDK зафиксирована на r27 (`27.0.12077973`) — SDK Manager сам предложит установить.
+
+### APK через GitHub Actions (без локального Android Studio)
+
+В репозитории есть workflow `.github/workflows/build-apk.yml`:
+1. Вкладка **Actions** → **Build APK** → **Run workflow**.
+2. В `release_tag` введите тег, например `v1.0.0` (или оставьте пустым).
+3. Через ~5–10 минут: APK в **Releases** (если задан тег) и в артефактах запуска.
+
+Это debug-сборка (подписана debug-ключом раннера) — ставится на телефон напрямую.
+Для signed release: создайте keystore, сохраните его как secret репозитория и
+переключите цель сборки на `assembleRelease` с `signingConfigs`.
 
 Зависимости (Maven Central): `dev.rikka.shizuku:api:13.1.5`,
 `dev.rikka.shizuku:provider:13.1.5`, `androidx.core:core-ktx:1.15.0`.

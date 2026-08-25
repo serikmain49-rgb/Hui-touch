@@ -6,6 +6,8 @@ plugins {
 android {
     namespace 'com.huitouch'
     compileSdk 35
+    // Зафиксирована для детерминированной сборки (локально SDK Manager предложит поставить)
+    ndkVersion "27.0.12077973"
 
     defaultConfig {
         applicationId "com.huitouch"
