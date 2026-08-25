@@ -421,7 +421,7 @@ class OverlayService : Service() {
             releaseVirtualDisplayOnly()
             val reader = ImageReader.newInstance(screenW, screenH, PixelFormat.RGBA_8888, 2)
             reader.setOnImageAvailableListener({ r ->
-                val img = r.acquireLatestImage() ?: return@let
+                val img = r.acquireLatestImage() ?: return@setOnImageAvailableListener
                 val bmp = try {
                     imageToBitmap(img)
                 } finally {
