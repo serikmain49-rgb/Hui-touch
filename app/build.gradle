@@ -1,0 +1,71 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'com.huitouch'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.huitouch"
+        minSdk 26          // TYPE_APPLICATION_OVERLAY, ImageReader, ASensorLocation, Method.parameterCount
+        targetSdk 35
+        versionCode 1
+        versionName "1.0"
+
+        // arm — реальные устройства, x86_64 — эмулятор (виртуализация датчиков)
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86_64'
+        }
+
+        externalNativeBuild {
+            cmake {
+                cppFlags "-std=c++17"
+                arguments "-DANDROID_STL=c++_shared"
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path 'src/main/cpp/CMakeLists.txt'
+        }
+    }
+
+    buildFeatures {
+        aidl true   // IShizukuTouch.aidl (интерфейс приложения <-> Shizuku user service)
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+        }
+        release {
+            // ВАЖНО: R8 может переименовать ShizukuTouchService — имя класса передаётся
+            // Shizuku как строка. Минификация отключена; если включите — оставьте keep-правила
+            // из proguard-rules.pro.
+            minifyEnabled false
+            shrinkResources false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    kotlinOptions {
+        jvmTarget = '11'
+    }
+}
+
+dependencies {
+    // Shizuku API (rikka.shizuku.Shizuku, SystemServiceHelper, IShizukuUserService и т.д.)
+    // 13.1.5 — последняя версия на Maven Central
+    implementation 'dev.rikka.shizuku:api:13.1.5'
+    // ShizukuProvider (обязателен, см. AndroidManifest)
+    implementation 'dev.rikka.shizuku:provider:13.1.5'
+
+    implementation 'androidx.core:core-ktx:1.15.0'   // NotificationCompat и пр.
+}

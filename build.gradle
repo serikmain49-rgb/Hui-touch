@@ -1,0 +1,7 @@
+// Top-level build file.
+// Versions mirror the official Shizuku-API demo (AGP 8.10 + Kotlin 2.1),
+// which is the known-good toolchain for AIDL + Shizuku in 2025/2026.
+plugins {
+    id 'com.android.application' version '8.10.0' apply false
+    id 'org.jetbrains.kotlin.android' version '2.1.21' apply false
+}

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.HuiTouch" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#101418</item>
+        <item name="android:statusBarColor">#101418</item>
+        <item name="android:navigationBarColor">#101418</item>
+    </style>
+
+    <!-- Кнопки панели (плавающее окно) -->
+    <style name="PanelButton">
+        <item name="android:layout_height">40dp</item>
+        <item name="android:background">@drawable/btn_dark</item>
+        <item name="android:textColor">#E8EAED</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:paddingStart">4dp</item>
+        <item name="android:paddingEnd">4dp</item>
+    </style>
+
+    <style name="PanelTinyButton" parent="PanelButton">
+        <item name="android:layout_width">32dp</item>
+        <item name="android:layout_height">28dp</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+
+    <style name="PanelAxisButton" parent="PanelButton">
+        <item name="android:layout_width">36dp</item>
+        <item name="android:layout_height">30dp</item>
+        <item name="android:layout_marginStart">6dp</item>
+        <item name="android:background">@drawable/btn_axis</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+</resources>
