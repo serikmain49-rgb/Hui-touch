@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#101418">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="HUI-TOUCH"
+            android:textColor="#7CFC9E"
+            android:textSize="30sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:layout_marginBottom="18dp"
+            android:text="Универсальный гироскоп для игр через Shizuku"
+            android:textColor="#9AA0A6"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/tv_shizuku"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:text="Shizuku: …"
+            android:textColor="#FFC107"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/tv_overlay"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="14dp"
+            android:text="Окно поверх: …"
+            android:textColor="#FFC107"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/btn_shizuku"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/btn_dark"
+            android:text="1. Авторизовать Shizuku"
+            android:textColor="#FFFFFF" />
+
+        <Button
+            android:id="@+id/btn_open"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/btn_dark"
+            android:text="2. Открыть панель калибровки"
+            android:textColor="#FFFFFF" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginVertical="16dp"
+            android:background="#2A3038" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Изображение для калибровки"
+            android:textColor="#9AA0A6"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btn_capture"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/btn_dark"
+            android:text="Скриншот экрана → в панель"
+            android:textColor="#FFFFFF" />
+
+        <Button
+            android:id="@+id/btn_gallery"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/btn_dark"
+            android:text="Изображение из галереи → в панель"
+            android:textColor="#FFFFFF" />
+
+        <TextView
+            android:id="@+id/tv_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text=""
+            android:textColor="#FF5252"
+            android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:lineSpacingExtra="4dp"
+            android:text="Как пользоваться:\n1) Авторизуйте Shizuku и откройте панель.\n2) Загрузите скриншот игры (или возьмите живой).\n3) Пальцем перетащите точки A и B туда, где должно «ходить» касание (например, от центра экрана к краю — для поворота камеры).\n4) Выставьте чувствительность (1–100) и ось (по умолчанию Z — Roll).\n5) «Запустить» — наклоняйте устройство, в игре идёт эмуляция свайпа. Стоп — пилюля ⏹ или уведомление."
+            android:textColor="#6E767E"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+</ScrollView>

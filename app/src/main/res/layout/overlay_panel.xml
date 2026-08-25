@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_panel"
+    android:orientation="vertical"
+    android:padding="10dp">
+
+    <!-- Заголовок — за него можно таскать окно -->
+    <LinearLayout
+        android:id="@+id/header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingTop="2dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="HUI-TOUCH"
+            android:textColor="#7CFC9E"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_resolution"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="6dp"
+            android:text="—"
+            android:textColor="#9AA0A6"
+            android:textSize="11sp" />
+
+        <Button
+            android:id="@+id/btn_hide"
+            style="@style/PanelTinyButton"
+            android:text="⤓" />
+
+        <Button
+            android:id="@+id/btn_close"
+            style="@style/PanelTinyButton"
+            android:text="✕" />
+    </LinearLayout>
+
+    <!-- Скриншот + точки A/B -->
+    <com.huitouch.ui.ScreenshotView
+        android:id="@+id/screenshot"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" />
+
+    <TextView
+        android:id="@+id/tv_points"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="A(0, 0) → B(0, 0)"
+        android:textColor="#E8EAED"
+        android:textSize="11sp" />
+
+    <TextView
+        android:id="@+id/tv_shizuku"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="3dp"
+        android:text="Shizuku: …"
+        android:textColor="#FFC107"
+        android:textSize="11sp" />
+
+    <!-- Чувствительность -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Скорость"
+            android:textColor="#E8EAED"
+            android:textSize="12sp" />
+
+        <SeekBar
+            android:id="@+id/seek_sens"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:max="100"
+            android:min="1"
+            android:progress="50" />
+
+        <TextView
+            android:id="@+id/tv_sens"
+            android:layout_width="32dp"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:text="50"
+            android:textColor="#7CFC9E"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Ось гироскопа -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ось гироскопа"
+            android:textColor="#E8EAED"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/btn_axis_x"
+            style="@style/PanelAxisButton"
+            android:text="X" />
+
+        <Button
+            android:id="@+id/btn_axis_y"
+            style="@style/PanelAxisButton"
+            android:text="Y" />
+
+        <Button
+            android:id="@+id/btn_axis_z"
+            style="@style/PanelAxisButton"
+            android:text="Z" />
+    </LinearLayout>
+
+    <!-- Источник изображения -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_shot"
+            style="@style/PanelButton"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:text="📷 Скриншот" />
+
+        <Button
+            android:id="@+id/btn_gallery"
+            style="@style/PanelButton"
+            android:layout_width="0dp"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:text="🖼 Галерея" />
+    </LinearLayout>
+
+    <!-- Управление -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_start"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/btn_green"
+            android:text="▶ Запустить"
+            android:textColor="#FFFFFF" />
+
+        <Button
+            android:id="@+id/btn_stop"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/btn_red"
+            android:text="⏹ Стоп"
+            android:textColor="#FFFFFF" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="Готов"
+        android:textColor="#7CFC9E"
+        android:textSize="11sp" />
+
+</LinearLayout>
