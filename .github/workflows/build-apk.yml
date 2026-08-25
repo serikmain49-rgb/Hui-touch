@@ -1,0 +1,78 @@
+name: Build APK
+
+# Запуск: Actions → "Build APK" → "Run workflow".
+# В поле release_tag укажите тег (напр. v1.0.0) — после сборки (~5–10 мин)
+# APK автоматически создаст/обновит GitHub Release.
+# Пустой release_tag — APK будет только в артефактах самого запуска.
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Тег релиза (пусто = только артефакт в Actions, без Release)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle 8.11.1
+        run: |
+          wget -qO /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.11.1-bin.zip
+          unzip -q /tmp/gradle.zip -d /opt/gradle
+          echo "/opt/gradle/gradle-8.11.1/bin" >> "$GITHUB_PATH"
+
+      - name: Install Android SDK packages (platform 35, build-tools, NDK r27)
+        run: |
+          yes | sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973"
+
+      - name: Build debug APK
+        # debug-сборка подписывается debug-ключом, который Gradle создаёт
+        # автоматически — APK устанавливается на устройство как есть
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Prepare artifact
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk "dist/HuiTouch-1.0.0-debug.apk"
+
+      - name: Upload to Actions artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: huitouch-apk
+          path: dist/*.apk
+          retention-days: 30
+
+      - name: Create GitHub Release
+        if: inputs.release_tag != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          name: HUI-TOUCH ${{ inputs.release_tag }}
+          body: |
+            HUI-TOUCH — универсальный гироскоп для игр (NDK + Shizuku).
+
+            **Файл:** `HuiTouch-1.0.0-debug.apk` — debug-сборка (подписана debug-ключом
+            GitHub Actions, устанавливается напрямую; `debuggable=true`).
+
+            Установка: включите «Установить из неизвестных источников», затем откройте APK.
+            Первый запуск: авторизуйте Shizuku → разрешение overlay → панель калибровки.
+
+            Подробности в README.
+          files: dist/*.apk
+          draft: false
+          prerelease: false
+          
