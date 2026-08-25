@@ -1,33 +1,6 @@
 // ============================================================================
 //  HUI-TOUCH — нативный гироскоп-движок (NDK)
 // ============================================================================
-//
-//  Архитектура hot-path (каждый такт гироскопа, до 200 Гц):
-//
-//   ASensorEventQueue (sensor worker-поток с ALooper)
-//        │  ProcessSensorEvent() — без аллокаций
-//        ▼
-//   интеграция угла (1-е звено НЧ-фильтр + deadzone + gap-reset)
-//        │
-//        ▼
-//   маппинг угла -> позиция между точками A и B  (x, y в пикселях экрана)
-//        │
-//        ▼
-//   JNI CallVoidMethod прямо из sensor-потока (НЕТ Handler/Looper hop в Java)
-//        │
-//        ▼
-//   Java: GyroEngine.onSample() -> TouchInjector -> Shizuku binder
-//        -> InputManager.injectInputEvent(MotionEvent, MODE_ASYNC)
-//
-//  Задержка "датчик -> вызов injectInputEvent" на современных устройствах
-//  обычно 1.5–4 мс (встроенный замер в приложении, см. TouchInjector).
-//
-//  JNI surface (класс com.huitouch.engine.GyroEngine):
-//    boolean nativeStart(cb, x1, y1, x2, y2, sensitivity, axis)
-//    void    nativeUpdate(x1, y1, x2, y2, sensitivity, axis)   // live-перенастройка
-//    void    nativeStop()
-//    // cb — объект с методом onSample(float, float, float, long)
-// ============================================================================
 
 #include <jni.h>
 #include <android/log.h>
@@ -45,24 +18,20 @@
 
 namespace {
 
-// ----------------------------- настройки -----------------------------------
-constexpr float kLpfAlpha    = 0.25f;   // 1-е звено НЧ на скорости гироскопа (сглаживание шумов)
-constexpr float kMaxGap      = 0.050f;  // с; перерыв в событиях > 50 мс -> сброс интеграции
-constexpr float kDeadZoneRad = 5.0e-4f; // ~0.03°; микро-джиттер не шлём
-constexpr float kMinMovePx   = 0.6f;    // px; эмитим только осмысленное смещение
+constexpr float kLpfAlpha    = 0.25f;   // сглаживание шумов гироскопа
+constexpr float kMaxGap      = 0.050f;  // перерыв > 50 мс -> сброс
+constexpr float kDeadZoneRad = 5.0e-4f; // ~0.03° deadzone
+constexpr float kMinMovePx   = 0.6f;    // порог смещения
 constexpr float kRad2Deg     = 57.29577951308232f;
 constexpr float kDeg2Rad     = 0.017453292519943295f;
-constexpr int   kAxisZ       = 2;       // по умолчанию — ось Z (Roll, поворот в плоскости экрана)
+constexpr int   kAxisZ       = 2;       // Z (Roll) по умолчанию
 constexpr int   kLooperIdent = 1;
 
-// ------------------------------- состояние ---------------------------------
 struct Engine {
-    // калибровка (пиксели экрана) - thread-safe atomic
     std::atomic<float> x1{0.f}, y1{0.f}, x2{0.f}, y2{0.f};
-    std::atomic<int>   sensitivity{50};   // 1..100
-    std::atomic<int>   axis{kAxisZ};      // 0 = X (Pitch), 1 = Y (Yaw), 2 = Z (Roll)
+    std::atomic<int>   sensitivity{50};
+    std::atomic<int>   axis{kAxisZ};
 
-    // сенсор
     ASensorManager    *mgr    = nullptr;
     const ASensor     *gyro   = nullptr;
 
@@ -70,19 +39,17 @@ struct Engine {
     ALooper           *looper = nullptr;
     std::thread        workerThread;
 
-    // интегратор — трогает ТОЛЬКО sensor-поток
-    float    startAngle = 0.f;   // угол-якорь (в момент nativeStart)
-    float    curAngle   = 0.f;   // текущий интегрированный угол
-    float    lpfRate    = 0.f;   // отфильтрованная угловая скорость
+    float    startAngle = 0.f;
+    float    curAngle   = 0.f;
+    float    lpfRate    = 0.f;
     int64_t  lastTs     = 0;
 
-    float    lastX = -1e9f;      // последняя отправленная позиция (фильтр повторений)
+    float    lastX = -1e9f;
     float    lastY = -1e9f;
 
-    // JNI
     JavaVM    *jvm      = nullptr;
-    jobject    callback = nullptr;   // global ref на GyroEngine
-    jmethodID  onSample = nullptr;   // (FFFL)V
+    jobject    callback = nullptr;
+    jmethodID  onSample = nullptr;
 };
 
 Engine eng;
@@ -91,19 +58,17 @@ void ProcessSensorEvent(JNIEnv *env, const ASensorEvent &ev) {
     if (ev.type != ASENSOR_TYPE_GYROSCOPE) return;
 
     const int curAxis = eng.axis.load(std::memory_order_relaxed);
-    const float rate = (curAxis == 0) ? ev.data[0]   // X: Pitch (наклон вперёд/назад)
-                     : (curAxis == 1) ? ev.data[1]   // Y: Yaw (поворот влево/вправо)
-                     : ev.data[2];                   // Z: Roll (поворот в плоскости экрана)
+    const float rate = (curAxis == 0) ? ev.data[0]
+                     : (curAxis == 1) ? ev.data[1]
+                     : ev.data[2];
 
-    // ---- интеграция угла (рад) с НЧ-фильтром ----
-    const int64_t ts = ev.timestamp;   // та же шкала времени, что SystemClock.elapsedRealtimeNanos()
+    const int64_t ts = ev.timestamp;
     if (eng.lastTs != 0) {
         const float dt = static_cast<float>(ts - eng.lastTs) * 1e-9f;
         if (dt > 0.f && dt < kMaxGap) {
             eng.lpfRate  += kLpfAlpha * (rate - eng.lpfRate);
             eng.curAngle += eng.lpfRate * dt;
         } else if (dt >= kMaxGap) {
-            // Долгий разрыв (doze/пауза) — перепривязываем якорь, иначе прыжок
             eng.curAngle = eng.startAngle;
             eng.lpfRate  = 0.f;
         }
@@ -111,11 +76,8 @@ void ProcessSensorEvent(JNIEnv *env, const ASensorEvent &ev) {
     eng.lastTs = ts;
 
     const float offset = eng.curAngle - eng.startAngle;
-    if (std::fabs(offset) < kDeadZoneRad) return;   // джиттер не отправляем
+    if (std::fabs(offset) < kDeadZoneRad) return;
 
-    // ---- маппинг: угол -> t в [0..1] -> позиция между A и B ----
-    // t = 0.5 — нейтраль (середина A..B, позиция ACTION_DOWN).
-    // Чувствительность 100 -> полный размах A..B при +-2°, чувствительность 1 -> при +-200°.
     const int sens = eng.sensitivity.load(std::memory_order_relaxed);
     const float halfRangeRad = (200.0f / static_cast<float>(sens)) * kDeg2Rad;
     float t = 0.5f + offset / (2.f * halfRangeRad);
@@ -130,12 +92,10 @@ void ProcessSensorEvent(JNIEnv *env, const ASensorEvent &ev) {
     const float x = curX1 + (curX2 - curX1) * t;
     const float y = curY1 + (curY2 - curY1) * t;
 
-    // Фильтр повторений: только осмысленное движение
     if (std::fabs(x - eng.lastX) < kMinMovePx && std::fabs(y - eng.lastY) < kMinMovePx) return;
     eng.lastX = x;
     eng.lastY = y;
 
-    // ---- прямо в Java, из sensor-потока (без очереди/Handler) ----
     if (env != nullptr && eng.callback != nullptr && eng.onSample != nullptr) {
         env->CallVoidMethod(eng.callback, eng.onSample,
                             static_cast<jfloat>(x),
@@ -173,7 +133,7 @@ void SensorThreadFunc() {
 
     ASensorEventQueue_enableSensor(queue, eng.gyro);
     int minDelayUs = ASensor_getMinDelay(eng.gyro);
-    if (minDelayUs <= 0) minDelayUs = 10000; // ~100 Hz fallback
+    if (minDelayUs <= 0) minDelayUs = 10000;
     ASensorEventQueue_setEventRate(queue, eng.gyro, minDelayUs);
 
     constexpr int kBatchSize = 8;
@@ -211,28 +171,30 @@ void StopWorker() {
 
 }  // namespace
 
-// ============================ JNI interface =================================
-
 extern "C" {
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *) {
     eng.jvm = vm;
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     eng.mgr = ASensorManager_getInstanceForPackage("com.huitouch");
     if (eng.mgr == nullptr) {
         eng.mgr = ASensorManager_getInstance();
     }
+#pragma clang diagnostic pop
+
     if (eng.mgr == nullptr) {
         LOGE("ASensorManager_getInstance() = null");
         return JNI_VERSION_1_6;
     }
     eng.gyro = ASensorManager_getDefaultSensor(eng.mgr, ASENSOR_TYPE_GYROSCOPE);
     if (eng.gyro == nullptr) {
-        LOGW("Гироскоп на устройстве не найден (ASensorManager_getDefaultSensor)");
+        LOGW("Гироскоп на устройстве не найден");
     } else {
-        LOGI("gyro: name=%s, maxRange=%.2f rad/s, resolution=%.5f, minDelay=%d us",
+        LOGI("gyro: name=%s, vendor=%s, resolution=%.5f, minDelay=%d us",
              ASensor_getName(eng.gyro),
-             ASensor_getMaxRange(eng.gyro),
+             ASensor_getVendor(eng.gyro),
              ASensor_getResolution(eng.gyro),
              ASensor_getMinDelay(eng.gyro));
     }
@@ -251,7 +213,6 @@ JNIEXPORT void JNICALL JNI_OnUnload(JavaVM *vm, void *) {
     eng.jvm = nullptr;
 }
 
-// cb — объект, содержащий onSample(float x, float y, float angleDeg, long sensorTsNs)
 JNIEXPORT jboolean JNICALL
 Java_com_huitouch_engine_GyroEngine_nativeStart(JNIEnv *env, jobject, jobject cb,
                                                 jfloat x1, jfloat y1, jfloat x2, jfloat y2,
@@ -261,10 +222,8 @@ Java_com_huitouch_engine_GyroEngine_nativeStart(JNIEnv *env, jobject, jobject cb
         return JNI_FALSE;
     }
 
-    // защита от двойного start
     StopWorker();
 
-    // применяем новую конфигурацию
     eng.x1.store(x1);
     eng.y1.store(y1);
     eng.x2.store(x2);
@@ -272,7 +231,6 @@ Java_com_huitouch_engine_GyroEngine_nativeStart(JNIEnv *env, jobject, jobject cb
     eng.sensitivity.store(sensitivity < 1 ? 1 : (sensitivity > 100 ? 100 : sensitivity));
     eng.axis.store((axis >= 0 && axis <= 2) ? axis : kAxisZ);
 
-    // сброс интегратора: якорь = текущая ориентация устройства
     eng.startAngle = 0.f;
     eng.curAngle   = 0.f;
     eng.lpfRate    = 0.f;
@@ -309,7 +267,6 @@ Java_com_huitouch_engine_GyroEngine_nativeStart(JNIEnv *env, jobject, jobject cb
     return JNI_TRUE;
 }
 
-// Live-перенастройка калибровки во время работы (точки двигают, слайдер крутят)
 JNIEXPORT void JNICALL
 Java_com_huitouch_engine_GyroEngine_nativeUpdate(JNIEnv *, jobject,
                                                  jfloat x1, jfloat y1, jfloat x2, jfloat y2,
