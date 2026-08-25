@@ -3,7 +3,6 @@ package com.huitouch.injection
 import android.os.RemoteException
 import android.os.SystemClock
 import android.util.Log
-import android.view.InputManager
 import android.view.MotionEvent
 import com.huitouch.shizuku.ShizukuChannel
 
@@ -23,6 +22,7 @@ object TouchInjector {
 
     private const val TAG = "TouchInjector"
     private const val PRESSURE = 0.35f   // типовое давление пальца, постоянное — нормально
+    private const val INJECT_INPUT_EVENT_MODE_ASYNC = 0
 
     @Volatile private var downTime: Long = 0L
     @Volatile private var dragging: Boolean = false
@@ -72,7 +72,7 @@ object TouchInjector {
         val ev = MotionEvent.obtain(dt, now, action, x.toFloat(), y.toFloat(), PRESSURE)
         try {
             // 0 == InputManager.INJECT_INPUT_EVENT_MODE_ASYNC
-            svc.injectEvent(ev, InputManager.INJECT_INPUT_EVENT_MODE_ASYNC)
+            svc.injectEvent(ev, INJECT_INPUT_EVENT_MODE_ASYNC)
         } catch (e: RemoteException) {
             Log.w(TAG, "injectEvent failed (Shizuku service died?)", e)
         } finally {
