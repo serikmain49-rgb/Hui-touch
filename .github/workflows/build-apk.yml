@@ -1,9 +1,13 @@
 name: Build APK
 
+# Запуск:
+# 1) Автоматически: при push в main или arena/**, или push тега v*
+# 2) Вручную: вкладка Actions → "Build APK" → "Run workflow"
 on:
   push:
     branches:
       - main
+      - 'arena/**'
     tags:
       - 'v*'
   workflow_dispatch:
@@ -37,7 +41,11 @@ jobs:
 
       - name: Install Android SDK packages (platform 35, build-tools, NDK r27, CMake)
         run: |
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973" "cmake;3.22.1"
+          SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="sdkmanager"
+          fi
+          yes | $SDKMANAGER --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973" "cmake;3.22.1"
 
       - name: Build debug APK
         run: gradle assembleDebug --no-daemon --stacktrace
@@ -72,40 +80,6 @@ jobs:
           body: |
             HUI-TOUCH — универсальный гироскоп для игр (NDK + Shizuku).
 
-            **Файл:** `HuiTouch-1.0.0-debug.apk` — debug-сборка.
-          files: dist/*.apk
-          draft: false
-          prerelease: false
-      - name: Install Android SDK packages (platform 35, build-tools, NDK r27)
-        run: |
-          yes | sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973"
-
-      - name: Build debug APK
-        # debug-сборка подписывается debug-ключом, который Gradle создаёт
-        # автоматически — APK устанавливается на устройство как есть
-        run: gradle assembleDebug --no-daemon --stacktrace
-
-      - name: Prepare artifact
-        run: |
-          mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk "dist/HuiTouch-1.0.0-debug.apk"
-
-      - name: Upload to Actions artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: huitouch-apk
-          path: dist/*.apk
-          retention-days: 30
-
-      - name: Create GitHub Release
-        if: inputs.release_tag != ''
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ inputs.release_tag }}
-          name: HUI-TOUCH ${{ inputs.release_tag }}
-          body: |
-            HUI-TOUCH — универсальный гироскоп для игр (NDK + Shizuku).
-
             **Файл:** `HuiTouch-1.0.0-debug.apk` — debug-сборка (подписана debug-ключом
             GitHub Actions, устанавливается напрямую; `debuggable=true`).
 
@@ -116,4 +90,3 @@ jobs:
           files: dist/*.apk
           draft: false
           prerelease: false
-          
